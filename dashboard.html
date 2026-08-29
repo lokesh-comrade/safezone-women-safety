@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SafeZone - Emergency Operations Center</title>
+  <!-- Leaflet Map CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      background: #0b0f19;
+      color: #f1f5f9;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    header {
+      background: #111827;
+      border-bottom: 1px solid #1f2937;
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      z-index: 1000;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: #f43f5e;
+    }
+    .brand i { font-size: 1.5rem; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); color: #ff0033; } }
+    
+    .header-actions { display: flex; gap: 12px; align-items: center; }
+    .btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .btn-audio { background: #3b82f6; color: white; }
+    .btn-audio:hover { background: #2563eb; }
+    .btn-silence { background: #e11d48; color: white; display: none; }
+
+    /* Main Split Layout */
+    .main-container {
+      display: flex;
+      flex: 1;
+      height: calc(100vh - 65px);
+      position: relative;
+    }
+
+    #map {
+      flex: 1;
+      height: 100%;
+      background: #1e293b;
+    }
+
+    /* Right Sidebar for Victims */
+    .sidebar {
+      width: 380px;
+      background: #111827;
+      border-left: 1px solid #1f2937;
+      display: flex;
+      flex-direction: column;
+      box-shadow: -4px 0 20px rgba(0,0,0,0.4);
+      z-index: 500;
+    }
+    .sidebar-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid #1f2937;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #161f30;
+    }
+    .sidebar-header h3 { font-size: 1rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px; }
+    .alert-badge {
+      background: #e11d48;
+      color: white;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: bold;
+    }
+    .victim-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    
+    /* Emergency Card */
+    .victim-card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-left: 5px solid #e11d48;
+      border-radius: 10px;
+      padding: 14px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      position: relative;
+      animation: flashBorder 1.2s infinite;
+    }
+    @keyframes flashBorder {
+      0%, 100% { border-left-color: #e11d48; }
+      50% { border-left-color: #fb7185; box-shadow: 0 0 15px rgba(225, 29, 72, 0.4); }
+    }
+    .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+    .victim-name { font-size: 1.1rem; font-weight: 700; color: #fff; }
+    .victim-time { font-size: 0.75rem; color: #94a3b8; background: #0f172a; padding: 2px 6px; border-radius: 4px; }
+    .victim-detail { font-size: 0.85rem; color: #cbd5e1; margin: 4px 0; display: flex; align-items: center; gap: 8px; }
+    .victim-detail i { color: #f43f5e; width: 14px; }
+    .card-actions { margin-top: 10px; display: flex; gap: 8px; }
+    .card-btn {
+      flex: 1;
+      padding: 6px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-size: 0.8rem;
+      text-align: center;
+      font-weight: 600;
+      display: inline-block;
+    }
+    .btn-call { background: #10b981; color: white; }
+    .btn-locate { background: #3b82f6; color: white; cursor: pointer; border: none; }
+
+    .no-alerts {
+      text-align: center;
+      color: #64748b;
+      margin-top: 60px;
+    }
+    .no-alerts i { font-size: 3rem; margin-bottom: 12px; color: #334155; }
+
+    /* Custom Flashing Marker */
+    .sos-marker {
+      background: #e11d48;
+      border: 3px solid #fff;
+      border-radius: 50%;
+      box-shadow: 0 0 20px #e11d48;
+      animation: markerPulse 1.2s infinite;
+    }
+    @keyframes markerPulse {
+      0% { box-shadow: 0 0 0 0 rgba(225, 29, 72, 0.8); }
+      70% { box-shadow: 0 0 0 20px rgba(225, 29, 72, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(225, 29, 72, 0); }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <i class="fa-solid fa-shield-halved"></i>
+      <span>SafeZone National Emergency Console</span>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-audio" onclick="unlockAudio()"><i class="fa-solid fa-volume-high"></i> Enable Sound</button>
+      <button class="btn btn-silence" id="silenceBtn" onclick="stopSiren()"><i class="fa-solid fa-bell-slash"></i> Silence Siren</button>
+    </div>
+  </header>
+
+  <div class="main-container">
+    <!-- Modern Dark Satellite-Themed Vector Map -->
+    <div id="map"></div>
+
+    <!-- Right Side Emergency Details Box -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h3>Live Incidents</h3>
+        <span class="alert-badge" id="activeCount">0 Active</span>
+      </div>
+      <div class="victim-list" id="victimList">
+        <div class="no-alerts">
+          <i class="fa-solid fa-circle-check"></i>
+          <p>All sectors safe.<br>Monitoring live signals...</p>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Leaflet Map JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAJaR1v2SyJViFY3ku5hEDMSpZqMoMqMcE",
+      authDomain: "women-safety-platform-243f9.firebaseapp.com",
+      projectId: "women-safety-platform-243f9",
+      storageBucket: "women-safety-platform-243f9.firebasestorage.app",
+      messagingSenderId: "66949809685",
+      appId: "1:66949809685:web:2021e5f5d9a206cfaeb01c"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // High-Tech Modern Dark Map Tiles (CartoDB Dark Matter)
+    const map = L.map('map', { zoomControl: false }).setView([12.9716, 77.5946], 12);
+    L.control.zoom({ position: 'bottomleft' }).addTo(map);
+
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      attribution: '© OpenStreetMap & CARTO',
+      subdomains: 'abcd',
+      maxZoom: 20
+    }).addTo(map);
+
+    let markers = {};
+    let audioCtx = null;
+    let sirenInterval = null;
+
+    function unlockAudio() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      playTone(880, 0.1);
+    }
+
+    function playTone(freq, duration) {
+      if (!audioCtx) return;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+      gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + duration);
+    }
+
+    function startSiren() {
+      if (sirenInterval) return;
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+
+      document.getElementById('silenceBtn').style.display = 'flex';
+      let toggle = false;
+      sirenInterval = setInterval(() => {
+        playTone(toggle ? 960 : 700, 0.35);
+        toggle = !toggle;
+      }, 350);
+    }
+
+    function stopSiren() {
+      if (sirenInterval) {
+        clearInterval(sirenInterval);
+        sirenInterval = null;
+      }
+      document.getElementById('silenceBtn').style.display = 'none';
+    }
+
+    function zoomToVictim(lat, lng) {
+      map.flyTo([lat, lng], 17, { duration: 1.5 });
+    }
+
+    // Real-Time Multi-Person Firestore Listener
+    db.collection("alerts").onSnapshot((snapshot) => {
+      const activeAlerts = [];
+      const victimListDiv = document.getElementById("victimList");
+      
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        const docId = doc.id;
+
+        if (data.is_alert_active) {
+          activeAlerts.push({ id: docId, ...data });
+
+          // Multi-marker handling on Map
+          const customIcon = L.divIcon({
+            className: 'sos-marker',
+            iconSize: [22, 22],
+            iconAnchor: [11, 11]
+          });
+
+          if (markers[docId]) {
+            markers[docId].setLatLng([data.latitude, data.longitude]);
+          } else {
+            markers[docId] = L.marker([data.latitude, data.longitude], { icon: customIcon }).addTo(map);
+            markers[docId].bindPopup(`<b>🚨 SOS ALERT</b><br><b>${data.user_name}</b><br>${data.phone}`);
+          }
+        } else {
+          // Remove marker if alert resolved
+          if (markers[docId]) {
+            map.removeLayer(markers[docId]);
+            delete markers[docId];
+          }
+        }
+      });
+
+      // Update Active Counter Badge
+      document.getElementById("activeCount").innerText = `${activeAlerts.length} Active`;
+
+      // Update Right Sidebar
+      if (activeAlerts.length > 0) {
+        startSiren();
+        victimListDiv.innerHTML = activeAlerts.map(alert => `
+          <div class="victim-card">
+            <div class="card-top">
+              <div class="victim-name">${alert.user_name}</div>
+              <div class="victim-time">${alert.timestamp || 'Just now'}</div>
+            </div>
+            <div class="victim-detail"><i class="fa-solid fa-phone"></i> <span>${alert.phone}</span></div>
+            <div class="victim-detail"><i class="fa-solid fa-location-dot"></i> <span>${alert.latitude.toFixed(4)}, ${alert.longitude.toFixed(4)}</span></div>
+            <div class="victim-detail"><i class="fa-solid fa-bolt"></i> <span>Trigger: Shake Gesture</span></div>
+            <div class="card-actions">
+              <a href="tel:${alert.phone}" class="card-btn btn-call"><i class="fa-solid fa-phone-volume"></i> Call</a>
+              <button class="card-btn btn-locate" onclick="zoomToVictim(${alert.latitude}, ${alert.longitude})"><i class="fa-solid fa-crosshairs"></i> Locate</button>
+            </div>
+          </div>
+        `).join('');
+      } else {
+        stopSiren();
+        victimListDiv.innerHTML = `
+          <div class="no-alerts">
+            <i class="fa-solid fa-circle-check"></i>
+            <p>All sectors safe.<br>Monitoring live signals...</p>
+          </div>
+        `;
+      }
+    });
+  </script>
+</body>
+</html>
