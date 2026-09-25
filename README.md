@@ -1,19 +1,26 @@
-# 🛡️ SafeZone - Real-Time Women Safety & Emergency Response Platform
+# Real-Time Women Safety Monitoring and Emergency Response Platform
 
-An event-driven emergency platform designed for instant, zero-touch danger detection and sub-second incident dispatching.
+A hybrid safety platform integrating responsive web runtime interfaces with native Android telephony and sensor hardware.
 
-## 🚀 Live Demo Links
-- **Emergency Console (Laptop):** [Live Dashboard](https://test-safety1.netlify.app/)
-- **SOS Mobile Client (Phone):** [Live Mobile App](https://test-safety1.netlify.app/mobile.html)
+## 📱 Download Application
+- 📥 **[Download SafeZone-v1.0.apk](SafeZone-v1.0.apk)**
 
-## 📌 Key Features
-- **Multi-Modal SOS Triggers:** 5x Rapid Accelerometer Shake, Voice Distress Keyword Detection, Stealth Calculator PIN (`9999=`), and Manual Panic Button.
-- **Real-Time Telemetry:** Continuous GPS coordinate stream (`watchPosition`) and live device battery percentage.
-- **Central Dispatch Console:** Multi-incident map tracking with Leaflet.js, synthesized Web Audio sirens, and 1-click incident resolution.
-- **Safety Tools:** Built-in fake incoming call simulator for awkward/unsafe situations.
+---
 
-## 🛠️ Tech Stack
-- **Frontend:** HTML5, CSS3, JavaScript (ES6+)
-- **APIs:** DeviceMotionEvent, Web Speech API, Geolocation API, Web Audio API
-- **Cloud Database:** Google Cloud Firestore (NoSQL)
-- **Mapping:** Leaflet.js (CartoDB Dark Matter / OpenStreetMap)
+## 🚀 Key Features
+- **Zero-Cost Background Telephony:** Employs native `SmsManager` and `Intent.ACTION_CALL` over cellular basebands, bypassing commercial SMS gateways.
+- **Continuous Path Telemetry:** Live kinematic tracking using `navigator.geolocation.watchPosition` streamed directly to Google Cloud Firestore.
+- **Multi-Modal Distress Triggers:**
+  - 1-Tap SOS dispatch.
+  - 5-Shake inertial filter with temporal throttling ($\Delta t \ge 100$ ms, $\Delta a > 20$ m/s²).
+  - Background voice keyword recognition ("help", "emergency", "bachao").
+  - Steganographic stealth calculator interface (PIN: `9999=`).
+- **Emergency Resolution:** One-touch "I Am Safe Here" state clearing with automated guardian notification.
+
+## ⚠️ Installation Instructions (Android 13/14+)
+1. Download and install `SafeZone-v1.0.apk`.
+2. When prompted by Google Play Protect, select **More details ➔ Install anyway**.
+3. If background SMS/Calling is restricted by Android OS:
+   - Go to phone **Settings ➔ Apps ➔ SafeZone**.
+   - Tap the three dots (**⋮**) in the top right corner ➔ **Allow restricted settings**.
+   - Open **Permissions** and enable **SMS**, **Phone**, and **Location**.

@@ -1,248 +1,252 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>SafeZone Mobile Platform</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>SafeZone - Emergency System</title>
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="apple-touch-icon" href="/app_icon.png" />
+  <meta name="theme-color" content="#090d16" />
+
+  <!-- Google Fonts & Lucide Icons -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background-color: #0b0f19;
-      color: #f8fafc;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      user-select: none;
+    :root {
+      --bg: #090d16;
+      --card-bg: rgba(26, 34, 53, 0.7);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --primary-red: #ff2a5f;
+      --primary-glow: rgba(255, 42, 95, 0.45);
+      --accent-blue: #00d2ff;
+      --safe-green: #10b981;
+      --safe-glow: rgba(16, 185, 129, 0.4);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
     }
-    
-    /* Top Bar */
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; -webkit-tap-highlight-color: transparent; }
+    body { background-color: var(--bg); color: var(--text-main); min-height: 100vh; overflow-x: hidden; display: flex; flex-direction: column; }
+
+    .ambient-glow {
+      position: fixed; width: 280px; height: 280px; background: radial-gradient(circle, var(--primary-glow) 0%, rgba(0,0,0,0) 70%);
+      top: -40px; right: -40px; z-index: 0; pointer-events: none; filter: blur(40px);
+    }
+    .ambient-glow-2 {
+      position: fixed; width: 280px; height: 280px; background: radial-gradient(circle, rgba(0, 210, 255, 0.15) 0%, rgba(0,0,0,0) 70%);
+      bottom: -40px; left: -40px; z-index: 0; pointer-events: none; filter: blur(40px);
+    }
+
+    .container { position: relative; z-index: 1; padding: 20px 16px; flex: 1; display: flex; flex-direction: column; max-width: 480px; margin: 0 auto; width: 100%; }
+
+    /* Top Mode Switcher */
     .top-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 14px 18px;
-      background: #111827;
-      border-bottom: 1px solid #1e293b;
+      display: flex; justify-content: space-between; align-items: center; background: var(--card-bg);
+      backdrop-filter: blur(16px); border: 1px solid var(--card-border); padding: 6px; border-radius: 14px; margin-bottom: 20px;
     }
-    .top-bar h1 { font-size: 1.1rem; color: #f43f5e; font-weight: 700; }
-    .stealth-toggle {
-      background: #1e293b;
-      color: #94a3b8;
-      border: 1px solid #334155;
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 0.8rem;
-      cursor: pointer;
+    .tab-btn {
+      flex: 1; padding: 10px 14px; border: none; background: transparent; color: var(--text-muted);
+      font-size: 13px; font-weight: 600; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s;
+    }
+    .tab-btn.active { background: rgba(255, 255, 255, 0.1); color: #fff; }
+
+    /* SOS Button */
+    .sos-wrapper { display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 16px 0 20px; position: relative; }
+    .pulse-ring {
+      position: absolute; width: 200px; height: 200px; border-radius: 50%; border: 2px solid var(--primary-red);
+      opacity: 0.4; animation: pulse 2s infinite ease-out;
+    }
+    @keyframes pulse {
+      0% { transform: scale(0.9); opacity: 0.8; }
+      100% { transform: scale(1.35); opacity: 0; }
     }
 
-    .container { padding: 16px; flex: 1; display: flex; flex-direction: column; gap: 14px; }
-    .card { background: #1e293b; border-radius: 14px; padding: 16px; border: 1px solid #334155; }
-    
-    .input-group { margin-bottom: 10px; }
-    label { font-size: 0.75rem; color: #94a3b8; display: block; margin-bottom: 4px; text-transform: uppercase; }
-    input {
-      width: 100%;
-      padding: 10px;
-      border-radius: 8px;
-      border: 1px solid #334155;
-      background: #0f172a;
-      color: #fff;
-      font-size: 0.95rem;
+    .sos-button {
+      width: 160px; height: 160px; border-radius: 50%; background: linear-gradient(135deg, #ff416c, #ff2a5f);
+      border: 6px solid rgba(255, 255, 255, 0.2); box-shadow: 0 10px 30px var(--primary-glow);
+      display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer;
+      color: white; z-index: 2; transition: transform 0.15s ease, background 0.3s;
+    }
+    .sos-button:active { transform: scale(0.95); }
+    .sos-button h2 { font-size: 32px; font-weight: 800; letter-spacing: 2px; }
+    .sos-button span { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; opacity: 0.9; margin-top: 2px; }
+
+    /* "I Am Safe Here" Action Button */
+    .btn-safe {
+      width: 100%; padding: 14px; background: linear-gradient(135deg, #10b981, #059669);
+      border: none; border-radius: 12px; color: white; font-weight: 700; font-size: 15px;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+      box-shadow: 0 4px 15px var(--safe-glow); margin-bottom: 18px; transition: 0.2s;
+    }
+    .btn-safe:active { transform: scale(0.98); }
+
+    /* Telemetry Display */
+    .grid-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+    .stat-card {
+      background: var(--card-bg); backdrop-filter: blur(12px); border: 1px solid var(--card-border);
+      padding: 12px 14px; border-radius: 12px; display: flex; align-items: center; gap: 12px;
+    }
+    .stat-icon { width: 36px; height: 36px; border-radius: 8px; background: rgba(255, 255, 255, 0.05); display: flex; align-items: center; justify-content: center; }
+    .stat-info h4 { font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; }
+    .stat-info p { font-size: 13px; font-weight: 700; color: #fff; margin-top: 2px; }
+
+    /* Collapsible Contacts Trigger */
+    .btn-contacts-toggle {
+      width: 100%; padding: 13px 16px; background: var(--card-bg); backdrop-filter: blur(12px);
+      border: 1px solid var(--card-border); border-radius: 12px; color: #fff; font-size: 14px;
+      font-weight: 600; cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 14px; transition: 0.2s;
+    }
+    .btn-contacts-toggle:hover { border-color: var(--accent-blue); }
+
+    /* Contacts Drawer */
+    #contacts-drawer { display: none; }
+    .glass-card {
+      background: var(--card-bg); backdrop-filter: blur(16px); border: 1px solid var(--card-border);
+      border-radius: 16px; padding: 16px; margin-bottom: 16px;
+    }
+    .card-title { font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+    .input-field {
+      width: 100%; background: rgba(9, 13, 22, 0.6); border: 1px solid var(--card-border);
+      padding: 10px 12px; border-radius: 8px; color: #fff; font-size: 13px; outline: none; margin-bottom: 8px;
+    }
+    .input-field:focus { border-color: var(--accent-blue); }
+
+    .action-btn {
+      width: 100%; padding: 12px; background: linear-gradient(135deg, #00b4db, #0083b0); border: none;
+      border-radius: 10px; color: white; font-weight: 700; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
     }
 
-    /* Motion & Voice Grid */
-    .sensor-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .sensor-box {
-      background: #0f172a;
-      padding: 14px;
-      border-radius: 10px;
-      text-align: center;
-      border: 1px solid #334155;
-    }
-    .sensor-val { font-size: 1.8rem; font-weight: 800; color: #38bdf8; margin-top: 4px; }
-    
-    /* Buttons */
-    .btn-sos {
-      width: 100%;
-      padding: 18px;
-      background: #e11d48;
-      color: white;
-      border: none;
-      border-radius: 12px;
-      font-size: 1.25rem;
-      font-weight: 800;
-      box-shadow: 0 0 20px rgba(225, 29, 72, 0.4);
-      cursor: pointer;
-    }
-    .btn-sos:active { transform: scale(0.97); }
-
-    .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-    .btn-action {
-      padding: 12px;
-      border-radius: 8px;
-      border: none;
-      font-weight: 600;
-      font-size: 0.85rem;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-    }
-    .btn-fake-call { background: #3b82f6; color: white; }
-    .btn-reset { background: #334155; color: #cbd5e1; }
-
-    .status-text { text-align: center; font-size: 0.8rem; color: #10b981; font-weight: 600; }
-
-    /* --- STEALTH CALCULATOR MODE --- */
-    #calculatorMode {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: #000;
-      z-index: 99999;
-      flex-direction: column;
-      justify-content: flex-end;
-      padding: 20px;
-    }
+    /* Calculator Mode */
+    #calculator-mode { display: none; }
     .calc-screen {
-      color: #fff;
-      font-size: 3.5rem;
-      text-align: right;
-      padding: 20px 10px;
-      min-height: 100px;
-      word-break: break-all;
+      background: rgba(0,0,0,0.5); border: 1px solid var(--card-border); border-radius: 12px;
+      padding: 18px 14px; text-align: right; font-size: 32px; font-weight: 700; margin-bottom: 14px; height: 75px; color: #fff;
     }
-    .calc-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 12px;
-    }
+    .calc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
     .calc-btn {
-      height: 75px;
-      border-radius: 50%;
-      border: none;
-      font-size: 1.8rem;
-      font-weight: 600;
-      background: #333333;
-      color: #fff;
-      cursor: pointer;
+      background: rgba(255, 255, 255, 0.05); border: 1px solid var(--card-border);
+      padding: 16px; border-radius: 10px; color: #fff; font-size: 20px; font-weight: 600; cursor: pointer;
     }
-    .calc-btn.op { background: #ff9f0a; color: #fff; }
-    .calc-btn.top { background: #a5a5a5; color: #000; }
-    .calc-btn.zero { grid-column: span 2; border-radius: 40px; text-align: left; padding-left: 28px; }
-
-    /* --- FAKE INCOMING CALL MODAL --- */
-    #fakeCallModal {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: #0f172a;
-      z-index: 100000;
-      flex-direction: column;
-      justify-content: space-between;
-      align-items: center;
-      padding: 60px 20px;
-    }
-    .caller-info { text-align: center; }
-    .caller-avatar { width: 100px; height: 100px; border-radius: 50%; background: #334155; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; }
-    .call-actions { width: 100%; display: flex; justify-content: space-around; }
-    .call-btn { width: 70px; height: 70px; border-radius: 50%; border: none; font-size: 1.8rem; color: white; display: flex; align-items: center; justify-content: center; }
-    .accept-call { background: #10b981; }
-    .decline-call { background: #ef4444; }
+    .calc-btn.op { background: rgba(0, 210, 255, 0.1); color: var(--accent-blue); }
+    .calc-btn.eq { background: #ff2a5f; color: white; }
   </style>
 </head>
 <body>
 
-  <!-- App Header -->
-  <div class="top-bar">
-    <h1><i class="fa-solid fa-shield-halved"></i> SafeZone Client</h1>
-    <button class="stealth-toggle" onclick="toggleStealth(true)"><i class="fa-solid fa-calculator"></i> Stealth Mode</button>
-  </div>
+  <div class="ambient-glow"></div>
+  <div class="ambient-glow-2"></div>
 
   <div class="container">
-    <div class="card">
-      <div class="input-group">
-        <label>Your Name</label>
-        <input type="text" id="userName" value="Priya">
+    <div class="top-bar">
+      <button class="tab-btn active" id="tab-sos" onclick="switchInterface('sos')">
+        <i data-lucide="shield" style="width: 16px;"></i> Shield UI
+      </button>
+      <button class="tab-btn" id="tab-calc" onclick="switchInterface('calc')">
+        <i data-lucide="calculator" style="width: 16px;"></i> Stealth Calculator
+      </button>
+    </div>
+
+    <!-- 1. SOS SHIELD INTERFACE -->
+    <div id="sos-mode">
+      <div class="sos-wrapper">
+        <div class="pulse-ring" id="pulse-ring"></div>
+        <div class="sos-button" id="trigger-btn" onclick="executeDistressSequence()">
+          <h2 id="btn-text">SOS</h2>
+          <span id="btn-subtext">Instant Alert</span>
+        </div>
       </div>
-      <div class="input-group">
-        <label>Contact Phone (Unique ID)</label>
-        <input type="tel" id="userPhone" value="9876543210">
+
+      <!-- I Am Safe Here Button -->
+      <button class="btn-safe" id="btn-safe" onclick="markUserSafe()">
+        <i data-lucide="shield-check" style="width: 20px;"></i> I Am Safe Here
+      </button>
+
+      <div class="grid-stats">
+        <div class="stat-card">
+          <div class="stat-icon"><i data-lucide="activity" style="color: var(--primary-red); width: 18px;"></i></div>
+          <div class="stat-info">
+            <h4>Shake Index</h4>
+            <p><span id="shake-display">0</span> / 5 Strikes</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon"><i data-lucide="navigation" style="color: var(--accent-blue); width: 18px;"></i></div>
+          <div class="stat-info">
+            <h4>Live GPS</h4>
+            <p id="tracking-status" style="color: #4ade80;">Standby</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Single Emergency Contacts Toggle Button -->
+      <button class="btn-contacts-toggle" onclick="toggleContactsDrawer()">
+        <span style="display: flex; align-items: center; gap: 8px;">
+          <i data-lucide="users" style="width: 18px; color: var(--accent-blue);"></i> Emergency Contacts Vault
+        </span>
+        <i data-lucide="chevron-down" id="drawer-chevron" style="width: 18px; transition: transform 0.2s;"></i>
+      </button>
+
+      <!-- Collapsible Hidden Contacts Drawer -->
+      <div id="contacts-drawer">
+        <div class="glass-card">
+          <div class="card-title"><i data-lucide="user" style="width: 14px; color: var(--accent-blue);"></i> My Profile</div>
+          <input type="text" id="user-name" class="input-field" placeholder="Full Legal Name" value="Jane Doe" />
+          <input type="tel" id="user-phone" class="input-field" placeholder="Your Phone Number" value="9876543210" />
+        </div>
+
+        <div class="glass-card">
+          <div class="card-title"><i data-lucide="shield-alert" style="width: 14px; color: #ff2a5f;"></i> 5 Pre-Saved Guardians</div>
+          <div id="guardian-inputs">
+            <input type="tel" class="input-field guardian-num" placeholder="Guardian 1 (Auto-Dialed)" />
+            <input type="tel" class="input-field guardian-num" placeholder="Guardian 2" />
+            <input type="tel" class="input-field guardian-num" placeholder="Guardian 3" />
+            <input type="tel" class="input-field guardian-num" placeholder="Guardian 4" />
+            <input type="tel" class="input-field guardian-num" placeholder="Guardian 5" />
+          </div>
+          <button class="action-btn" onclick="saveContacts()"><i data-lucide="save" style="width: 16px;"></i> Save Contacts</button>
+        </div>
       </div>
     </div>
 
-    <!-- Active Live Sensors -->
-    <div class="sensor-grid">
-      <div class="sensor-box">
-        <div style="font-size: 0.75rem; color:#94a3b8;"><i class="fa-solid fa-hand-fist"></i> Shakes (Goal: 5)</div>
-        <div class="sensor-val" id="shakeDisplay">0</div>
-      </div>
-      <div class="sensor-box">
-        <div style="font-size: 0.75rem; color:#94a3b8;"><i class="fa-solid fa-microphone"></i> Voice Detection</div>
-        <div class="sensor-val" style="font-size: 1.1rem; color: #10b981; margin-top: 12px;" id="voiceStatus">Active</div>
+    <!-- 2. CAMOUFLAGED CALCULATOR (Stealth PIN: 9999=) -->
+    <div id="calculator-mode">
+      <div class="calc-screen" id="calc-display">0</div>
+      <div class="calc-grid">
+        <button class="calc-btn op" onclick="calcInput('C')">C</button>
+        <button class="calc-btn op" onclick="calcInput('/')">/</button>
+        <button class="calc-btn op" onclick="calcInput('*')">×</button>
+        <button class="calc-btn op" onclick="calcInput('-')">-</button>
+
+        <button class="calc-btn" onclick="calcInput('7')">7</button>
+        <button class="calc-btn" onclick="calcInput('8')">8</button>
+        <button class="calc-btn" onclick="calcInput('9')">9</button>
+        <button class="calc-btn op" onclick="calcInput('+')">+</button>
+
+        <button class="calc-btn" onclick="calcInput('4')">4</button>
+        <button class="calc-btn" onclick="calcInput('5')">5</button>
+        <button class="calc-btn" onclick="calcInput('6')">6</button>
+        <button class="calc-btn eq" onclick="calcInput('=')">=</button>
+
+        <button class="calc-btn" onclick="calcInput('1')">1</button>
+        <button class="calc-btn" onclick="calcInput('2')">2</button>
+        <button class="calc-btn" onclick="calcInput('3')">3</button>
+        <button class="calc-btn" onclick="calcInput('0')">0</button>
       </div>
     </div>
-
-    <button class="btn-sos" onclick="triggerEmergency('DIRECT_SOS_BUTTON')">🚨 TRIGGER SOS</button>
-
-    <div class="action-grid">
-      <button class="btn-action btn-fake-call" onclick="startFakeCallTimer()"><i class="fa-solid fa-phone-volume"></i> Fake Call (5s)</button>
-      <button class="btn-action btn-reset" onclick="resetAlert()"><i class="fa-solid fa-circle-check"></i> I am Safe</button>
-    </div>
-
-    <div class="status-text" id="statusLog">● Live GPS & Accelerometer Guarding</div>
   </div>
-
-  <!-- 1. STEALTH CALCULATOR MODE -->
-  <div id="calculatorMode">
-    <div class="calc-screen" id="calcScreen">0</div>
-    <div class="calc-grid">
-      <button class="calc-btn top" onclick="calcInput('C')">C</button>
-      <button class="calc-btn top" onclick="calcInput('+/-')">±</button>
-      <button class="calc-btn top" onclick="calcInput('%')">%</button>
-      <button class="calc-btn op" onclick="calcInput('/')">÷</button>
-      
-      <button class="calc-btn" onclick="calcInput('7')">7</button>
-      <button class="calc-btn" onclick="calcInput('8')">8</button>
-      <button class="calc-btn" onclick="calcInput('9')">9</button>
-      <button class="calc-btn op" onclick="calcInput('*')">×</button>
-      
-      <button class="calc-btn" onclick="calcInput('4')">4</button>
-      <button class="calc-btn" onclick="calcInput('5')">5</button>
-      <button class="calc-btn" onclick="calcInput('6')">6</button>
-      <button class="calc-btn op" onclick="calcInput('-')">-</button>
-      
-      <button class="calc-btn" onclick="calcInput('1')">1</button>
-      <button class="calc-btn" onclick="calcInput('2')">2</button>
-      <button class="calc-btn" onclick="calcInput('3')">3</button>
-      <button class="calc-btn op" onclick="calcInput('+')">+</button>
-      
-      <button class="calc-btn zero" onclick="calcInput('0')">0</button>
-      <button class="calc-btn" onclick="calcInput('.')">.</button>
-      <button class="calc-btn op" onclick="calcInput('=')">=</button>
-    </div>
-  </div>
-
-  <!-- 2. FAKE CALL SIMULATOR MODAL -->
-  <div id="fakeCallModal">
-    <div class="caller-info">
-      <div class="caller-avatar"><i class="fa-solid fa-user"></i></div>
-      <h2 style="font-size: 1.6rem; margin-bottom: 6px;">Mom</h2>
-      <p style="color: #94a3b8;">Mobile incoming call...</p>
-    </div>
-    <div class="call-actions">
-      <button class="call-btn decline-call" onclick="endFakeCall()"><i class="fa-solid fa-phone-slash"></i></button>
-      <button class="call-btn accept-call" onclick="acceptFakeCall()"><i class="fa-solid fa-phone"></i></button>
-    </div>
-  </div>
-
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
   <script>
+    lucide.createIcons();
+
+    // Firebase Firestore Initialization
     const firebaseConfig = {
       apiKey: "AIzaSyAJaR1v2SyJViFY3ku5hEDMSpZqMoMqMcE",
       authDomain: "women-safety-platform-243f9.firebaseapp.com",
@@ -251,159 +255,86 @@
       messagingSenderId: "66949809685",
       appId: "1:66949809685:web:2021e5f5d9a206cfaeb01c"
     };
-
-    firebase.initializeApp(firebaseConfig);
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    let shakeCount = 0;
-    let lastShakeTime = 0;
-    let lastX = null, lastY = null, lastZ = null;
-    let isEmergencyTriggered = false;
-    let currentBattery = "Unknown";
-    let watchId = null;
-
-    // Battery API Reader
-    if (navigator.getBattery) {
-      navigator.getBattery().then(bat => {
-        currentBattery = `${Math.round(bat.level * 100)}%`;
-        bat.addEventListener('levelchange', () => {
-          currentBattery = `${Math.round(bat.level * 100)}%`;
-        });
-      });
+    // Drawer Toggle Logic
+    let drawerOpen = false;
+    function toggleContactsDrawer() {
+      drawerOpen = !drawerOpen;
+      document.getElementById('contacts-drawer').style.display = drawerOpen ? 'block' : 'none';
+      document.getElementById('drawer-chevron').style.transform = drawerOpen ? 'rotate(180deg)' : 'rotate(0deg)';
     }
 
-    // Accelerometer Motion Tracking
-    function handleMotion(e) {
-      if (isEmergencyTriggered) return;
-      const acc = e.accelerationIncludingGravity || e.acceleration;
-      if (!acc || acc.x === null) return;
+    // 1. THROTTLED ACCELEROMETER ENGINE
+    let shakeCount = 0;
+    let lastX = 0, lastY = 0, lastZ = 0;
+    let lastSampleTime = 0;
+    let lastShakeTime = 0;
 
+    window.addEventListener('devicemotion', (e) => {
       const now = Date.now();
-      if ((now - lastShakeTime) > 2500) shakeCount = 0;
+      if (now - lastSampleTime < 100) return;
+      lastSampleTime = now;
 
-      if (lastX !== null) {
+      const acc = e.accelerationIncludingGravity;
+      if (!acc) return;
+
+      if (lastX !== 0 || lastY !== 0 || lastZ !== 0) {
         const delta = Math.abs(acc.x - lastX) + Math.abs(acc.y - lastY) + Math.abs(acc.z - lastZ);
-        if (delta > 18) {
-          if (now - lastShakeTime > 250) {
-            shakeCount++;
-            lastShakeTime = now;
-            document.getElementById('shakeDisplay').innerText = shakeCount;
-            if (shakeCount >= 5) triggerEmergency('SHAKE_GESTURE_5X');
+        if (delta > 20 && (now - lastShakeTime > 300)) {
+          shakeCount++;
+          lastShakeTime = now;
+          const countEl = document.getElementById('shake-display');
+          if (countEl) countEl.innerText = shakeCount;
+
+          if (shakeCount >= 5) {
+            shakeCount = 0;
+            executeDistressSequence();
           }
         }
       }
       lastX = acc.x; lastY = acc.y; lastZ = acc.z;
-    }
+    }, false);
 
-    window.addEventListener('devicemotion', handleMotion);
-    window.addEventListener('click', () => {
-      if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
-        DeviceMotionEvent.requestPermission().then(r => {
-          if (r === 'granted') window.addEventListener('devicemotion', handleMotion);
-        });
-      }
-      initVoiceRecognition();
-    }, { once: true });
-
-    // Web Speech API for Hands-Free Keyword Distress
-    function initVoiceRecognition() {
+    // 2. VOICE TRIGGER ENGINE
+    function initSpeech() {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognition) return;
-
       const recognition = new SpeechRecognition();
       recognition.continuous = true;
+      recognition.interimResults = false;
       recognition.lang = 'en-US';
 
       recognition.onresult = (event) => {
-        const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase();
-        if (transcript.includes('help') || transcript.includes('emergency') || transcript.includes('save me') || transcript.includes('stop')) {
-          triggerEmergency('VOICE_KEYWORD_DETECTED');
+        const word = event.results[event.results.length - 1][0].transcript.toLowerCase();
+        if (word.includes('help') || word.includes('emergency') || word.includes('bachao')) {
+          executeDistressSequence();
         }
       };
-      
-      recognition.onerror = () => { try { recognition.start(); } catch(e){} };
       recognition.onend = () => { try { recognition.start(); } catch(e){} };
-      
       try { recognition.start(); } catch(e){}
     }
+    initSpeech();
 
-    // Continuous Live GPS Watcher & Firestore Publisher
-    function triggerEmergency(source) {
-      if (isEmergencyTriggered) return;
-      isEmergencyTriggered = true;
-
-      const name = document.getElementById('userName').value;
-      const phone = document.getElementById('userPhone').value;
-      document.getElementById('statusLog').innerHTML = `🚨 Broadcasting Emergency (${source})...`;
-
-      if (navigator.geolocation) {
-        watchId = navigator.geolocation.watchPosition(
-          (pos) => pushAlert(name, phone, pos.coords.latitude, pos.coords.longitude, source),
-          (err) => pushAlert(name, phone, 12.9716, 77.5946, source),
-          { enableHighAccuracy: true, maximumAge: 0 }
-        );
-      } else {
-        pushAlert(name, phone, 12.9716, 77.5946, source);
-      }
-    }
-
-    function pushAlert(name, phone, lat, lng, source) {
-      const docId = `user_${phone.replace(/[^0-9]/g, '')}`;
-      db.collection("alerts").doc(docId).set({
-        user_name: name,
-        phone: phone,
-        latitude: lat,
-        longitude: lng,
-        battery_level: currentBattery,
-        trigger_source: source,
-        is_alert_active: true,
-        timestamp: new Date().toLocaleTimeString()
-      }, { merge: true });
-    }
-
-    function resetAlert() {
-      const phone = document.getElementById('userPhone').value;
-      const docId = `user_${phone.replace(/[^0-9]/g, '')}`;
-
-      if (watchId) navigator.geolocation.clearWatch(watchId);
-
-      db.collection("alerts").doc(docId).update({
-        is_alert_active: false
-      }).then(() => {
-        isEmergencyTriggered = false;
-        shakeCount = 0;
-        document.getElementById('shakeDisplay').innerText = "0";
-        document.getElementById('statusLog').innerHTML = "● Reset Complete (Monitoring Active)";
-      });
-    }
-
-    // --- STEALTH CALCULATOR ENGINE ---
+    // 3. CAMOUFLAGED CALCULATOR ENGINE
     let calcExpression = "";
-    function toggleStealth(show) {
-      document.getElementById('calculatorMode').style.display = show ? 'flex' : 'none';
-      if (!show) calcExpression = "";
-    }
-
     function calcInput(val) {
-      const screen = document.getElementById('calcScreen');
+      const screen = document.getElementById('calc-display');
       if (val === 'C') {
         calcExpression = "";
         screen.innerText = "0";
       } else if (val === '=') {
         if (calcExpression === "9999") {
-          // Secret PIN to trigger emergency
-          toggleStealth(false);
-          triggerEmergency('STEALTH_CALCULATOR_PIN');
-          return;
-        } else if (calcExpression === "0000") {
-          // Secret PIN to dismiss stealth mode
-          toggleStealth(false);
+          executeDistressSequence();
+          calcExpression = "";
+          screen.innerText = "0";
           return;
         }
         try {
           screen.innerText = eval(calcExpression) || "0";
           calcExpression = screen.innerText;
-        } catch {
+        } catch(e) {
           screen.innerText = "Error";
           calcExpression = "";
         }
@@ -413,40 +344,156 @@
       }
     }
 
-    // --- FAKE INCOMING CALL ENGINE ---
-    let fakeCallAudio = null;
-    function startFakeCallTimer() {
-      document.getElementById('statusLog').innerText = "Fake call scheduled in 5 seconds...";
-      setTimeout(() => {
-        document.getElementById('fakeCallModal').style.display = 'flex';
-        playRingtone();
-      }, 5000);
-    }
-
-    function playRingtone() {
-      try {
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.frequency.value = 440;
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        fakeCallAudio = { osc, audioCtx };
-      } catch(e){}
-    }
-
-    function endFakeCall() {
-      if (fakeCallAudio) {
-        try { fakeCallAudio.osc.stop(); fakeCallAudio.audioCtx.close(); } catch(e){}
+    function switchInterface(mode) {
+      if (mode === 'calc') {
+        document.getElementById('sos-mode').style.display = 'none';
+        document.getElementById('calculator-mode').style.display = 'block';
+        document.getElementById('tab-calc').classList.add('active');
+        document.getElementById('tab-sos').classList.remove('active');
+      } else {
+        document.getElementById('calculator-mode').style.display = 'none';
+        document.getElementById('sos-mode').style.display = 'block';
+        document.getElementById('tab-sos').classList.add('active');
+        document.getElementById('tab-calc').classList.remove('active');
       }
-      document.getElementById('fakeCallModal').style.display = 'none';
     }
 
-    function acceptFakeCall() {
-      endFakeCall();
-      alert("Connected. Pretend you are speaking to someone.");
+    // 4. CONTINUOUS LIVE-STREAMING GEOLOCATION
+    let trackingWatchId = null;
+    let initialDispatchComplete = false;
+
+    function executeDistressSequence() {
+      const btn = document.getElementById('trigger-btn');
+      const btnText = document.getElementById('btn-text');
+      const btnSub = document.getElementById('btn-subtext');
+      const trackingStatus = document.getElementById('tracking-status');
+
+      if (btn) {
+        btn.style.background = "#e11d48";
+        btnText.innerText = "ALERT";
+        btnSub.innerText = "Streaming GPS";
+      }
+      if (trackingStatus) {
+        trackingStatus.innerText = "Transmitting Live";
+        trackingStatus.style.color = "#ff2a5f";
+      }
+
+      if (!navigator.geolocation) {
+        alert("GPS Hardware unavailable.");
+        return;
+      }
+
+      if (trackingWatchId !== null) return;
+
+      trackingWatchId = navigator.geolocation.watchPosition((pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        const name = document.getElementById('user-name').value.trim();
+        const phone = document.getElementById('user-phone').value.trim();
+        const guardians = Array.from(document.querySelectorAll('.guardian-num'))
+          .map(i => i.value.trim())
+          .filter(Boolean);
+
+        // A. Continually push current moving position to Firestore
+        db.collection("alerts").doc("user_" + phone).set({
+          user_name: name,
+          phone: phone,
+          latitude: lat,
+          longitude: lng,
+          is_alert_active: true,
+          battery_level: "92%",
+          guardians: guardians,
+          timestamp: new Date().toLocaleTimeString()
+        }, { merge: true });
+
+        // B. Send initial automated SMS only once upon trigger
+        if (!initialDispatchComplete && guardians.length > 0) {
+          initialDispatchComplete = true;
+
+          const initialPin = `https://maps.google.com/?q=${lat},${lng}`;
+          const liveMovingTracker = `https://safety-app1.netlify.app/guardian.html`;
+          const messageBody = `EMERGENCY! ${name} is in danger. Initial Pin: ${initialPin} | Track LIVE moving location: ${liveMovingTracker}`;
+
+          if (window.AndroidBridge) {
+            window.AndroidBridge.sendBackgroundSMS(guardians.join(','), messageBody);
+            setTimeout(() => {
+              window.AndroidBridge.makeDirectCall(guardians[0]);
+            }, 1200);
+          } else {
+            window.location.href = `sms:${guardians.join(',')}?body=${encodeURIComponent(messageBody)}`;
+          }
+        }
+      }, (err) => {
+        console.error("GPS stream failure:", err);
+      }, {
+        enableHighAccuracy: true,
+        maximumAge: 0,
+        timeout: 8000
+      });
     }
+
+    // 5. "I AM SAFE HERE" RESOLUTION ROUTINE
+    function markUserSafe() {
+      const phone = document.getElementById('user-phone').value.trim();
+      const name = document.getElementById('user-name').value.trim();
+      const guardians = Array.from(document.querySelectorAll('.guardian-num'))
+        .map(i => i.value.trim())
+        .filter(Boolean);
+
+      // Stop continuous GPS tracker
+      if (trackingWatchId !== null) {
+        navigator.geolocation.clearWatch(trackingWatchId);
+        trackingWatchId = null;
+      }
+      initialDispatchComplete = false;
+
+      // Update Firestore state to safe
+      db.collection("alerts").doc("user_" + phone).set({
+        is_alert_active: false,
+        timestamp: new Date().toLocaleTimeString()
+      }, { merge: true });
+
+      // Reset UI back to Standby
+      const btn = document.getElementById('trigger-btn');
+      const btnText = document.getElementById('btn-text');
+      const btnSub = document.getElementById('btn-subtext');
+      const trackingStatus = document.getElementById('tracking-status');
+
+      btn.style.background = "linear-gradient(135deg, #ff416c, #ff2a5f)";
+      btnText.innerText = "SOS";
+      btnSub.innerText = "Instant Alert";
+      trackingStatus.innerText = "Standby";
+      trackingStatus.style.color = "#4ade80";
+
+      // Send "Safe" update SMS to guardians
+      if (window.AndroidBridge && guardians.length > 0) {
+        const safeMessage = `UPDATE: ${name} has marked themselves SAFE. The emergency situation is resolved.`;
+        window.AndroidBridge.sendBackgroundSMS(guardians.join(','), safeMessage);
+      }
+
+      alert("🛡️ Status updated: You have marked yourself safe. Guardians have been notified.");
+    }
+
+    // 6. LOCAL CONTACT PERSISTENCE
+    function saveContacts() {
+      const guardians = Array.from(document.querySelectorAll('.guardian-num')).map(i => i.value.trim());
+      localStorage.setItem('sz_guardians', JSON.stringify(guardians));
+      localStorage.setItem('sz_name', document.getElementById('user-name').value.trim());
+      localStorage.setItem('sz_phone', document.getElementById('user-phone').value.trim());
+      alert("✅ Contacts successfully stored in Vault.");
+      toggleContactsDrawer(); // Auto-close drawer on save
+    }
+
+    function loadSavedContacts() {
+      const saved = JSON.parse(localStorage.getItem('sz_guardians') || '[]');
+      document.querySelectorAll('.guardian-num').forEach((inp, idx) => {
+        if (saved[idx]) inp.value = saved[idx];
+      });
+      if (localStorage.getItem('sz_name')) document.getElementById('user-name').value = localStorage.getItem('sz_name');
+      if (localStorage.getItem('sz_phone')) document.getElementById('user-phone').value = localStorage.getItem('sz_phone');
+    }
+
+    window.onload = loadSavedContacts;
   </script>
 </body>
 </html>
